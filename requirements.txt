@@ -1,0 +1,13 @@
+faiss-cpu
+groq
+langchain-groq
+PyPDF2
+langchain
+langchain-classic
+langchain-text-splitters
+langchain-huggingface
+sentence-transformers
+streamlit
+langchain_community
+python-dotenv
+pypdf
