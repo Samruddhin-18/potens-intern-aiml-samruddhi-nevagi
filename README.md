@@ -1,4 +1,38 @@
-# DocLens
+<div align="center">
+
+# 📄 DocLens
+
+**Ask questions over your PDFs. Get grounded answers with real citations — never a guess.**
+
+[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![Streamlit](https://img.shields.io/badge/UI-Streamlit-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io/)
+[![FastAPI](https://img.shields.io/badge/API-FastAPI-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![LangChain](https://img.shields.io/badge/Orchestration-LangChain-1C3C3C)](https://www.langchain.com/)
+[![FAISS](https://img.shields.io/badge/Vector%20Store-FAISS-4267B2)](https://github.com/facebookresearch/faiss)
+[![Groq](https://img.shields.io/badge/LLM-Groq-F55036)](https://groq.com/)
+[![License](https://img.shields.io/badge/License-Internship%20Project-lightgrey)]()
+
+</div>
+
+---
+
+## 📑 Table of Contents
+
+- [Overview](#-overview)
+- [Features](#-features)
+- [Architecture](#-architecture)
+- [Tech Stack](#-tech-stack)
+- [Folder Structure](#-folder-structure)
+- [Installation and Setup](#-installation-and-setup)
+- [How the RAG Pipeline Works](#-how-the-rag-pipeline-works)
+- [Chunking Strategy](#-chunking-strategy)
+- [API Endpoints](#-api-endpoints)
+- [Hallucination Prevention Strategy](#-hallucination-prevention-strategy)
+- [Future Improvements](#-future-improvements)
+- [AI Use Log](#-ai-use-log)
+- [Known Limitations](#-known-limitations)
+
+---
 
 DocLens is a Retrieval-Augmented Generation (RAG) system for asking questions over a
 collection of PDF documents. It retrieves the most relevant passages from a local
@@ -6,7 +40,7 @@ knowledge base, generates a grounded answer with an LLM, and returns the exact s
 snippets that support that answer. The project ships both a Streamlit UI and a FastAPI
 backend on top of one shared pipeline.
 
-## Overview
+## 🔎 Overview
 
 Given a folder of PDFs (currently a set of autism-related medical documents/fact sheets),
 DocLens builds a searchable vector index, then lets a user ask natural-language questions
@@ -14,17 +48,19 @@ against it. Every answer is traceable back to the exact document, page, and chun
 from, and the system is designed to say "I don't know" rather than fabricate an answer when
 the documents don't cover the question.
 
-## Features
+## ✨ Features
 
-- **Document Q&A** — ask a question, get an answer grounded in the PDF corpus with inline citations.
-- **Citations on every answer** — source filename, page number (or chunk ID as fallback), and the exact supporting text snippet.
-- **Hallucination guard** — a retrieval-confidence check runs before generation; if nothing relevant is found, the LLM is never invoked.
-- **Multilingual support** — ask in any language; the question is translated for retrieval and the answer is translated back, while citations stay in the source document's original language.
-- **Cross-document contradiction detection** — compare how two documents discuss the same topic and get an LLM-reasoned verdict on whether they conflict.
-- **Persistent vector store** — the FAISS index is cached to disk and only rebuilt when the source PDFs change.
-- **Dual interface** — a Streamlit UI for interactive use and a FastAPI backend for programmatic/service access, both built on the same pipeline.
+| Feature | Description |
+|---|---|
+| 💬 **Document Q&A** | Ask a question, get an answer grounded in the PDF corpus with inline citations. |
+| 📎 **Citations on every answer** | Source filename, page number (or chunk ID as fallback), and the exact supporting text snippet. |
+| 🛡️ **Hallucination guard** | A retrieval-confidence check runs before generation; if nothing relevant is found, the LLM is never invoked. |
+| 🌍 **Multilingual support** | Ask in any language; the question is translated for retrieval and the answer is translated back, while citations stay in the source document's original language. |
+| ⚖️ **Cross-document contradiction detection** | Compare how two documents discuss the same topic and get an LLM-reasoned verdict on whether they conflict. |
+| 💾 **Persistent vector store** | The FAISS index is cached to disk and only rebuilt when the source PDFs change. |
+| 🖥️ **Dual interface** | A Streamlit UI for interactive use and a FastAPI backend for programmatic/service access, both built on the same pipeline. |
 
-## Architecture
+## 🏗 Architecture
 
 ```
                         ┌─────────────────┐
@@ -58,20 +94,20 @@ retrieval, answer generation, citation formatting, translation, and contradictio
 Neither `app.py` nor `api.py` duplicates that logic — they only orchestrate it for their
 respective interface.
 
-## Tech Stack
+## 🧰 Tech Stack
 
-| Layer            | Technology                                            |
-|-------------------|--------------------------------------------------------|
-| LLM               | Groq (`openai/gpt-oss-120b`) via `langchain-groq`       |
-| Embeddings        | `BAAI/bge-small-en-v1.5` via `langchain-huggingface`    |
-| Vector store      | FAISS (`faiss-cpu`)                                     |
-| Orchestration     | LangChain (`langchain`, `langchain-classic`)            |
-| PDF parsing       | `pypdf` / `PyPDF2` via `PyPDFDirectoryLoader`           |
-| Language detection| `langdetect`                                            |
-| Web UI            | Streamlit                                               |
-| API               | FastAPI + Uvicorn + Pydantic                            |
+| Layer               | Technology                                              |
+|---------------------|----------------------------------------------------------|
+| 🤖 LLM              | Groq (`openai/gpt-oss-120b`) via `langchain-groq`         |
+| 🧬 Embeddings       | `BAAI/bge-small-en-v1.5` via `langchain-huggingface`      |
+| 🔍 Vector store     | FAISS (`faiss-cpu`)                                       |
+| 🔗 Orchestration    | LangChain (`langchain`, `langchain-classic`)              |
+| 📄 PDF parsing      | `pypdf` via `PyPDFDirectoryLoader`                         |
+| 🌐 Language detection | `langdetect`                                             |
+| 🖥️ Web UI           | Streamlit                                                 |
+| ⚡ API              | FastAPI + Uvicorn + Pydantic                              |
 
-## Folder Structure
+## 📂 Folder Structure
 
 ```
 doclens/
@@ -85,9 +121,9 @@ doclens/
 └── README.md
 ```
 
-## Installation and Setup
+## ⚙️ Installation and Setup
 
-**Prerequisites:** Python 3.10+, a [Groq API key](https://console.groq.com/).
+> **Prerequisites:** Python 3.10+, a [Groq API key](https://console.groq.com/).
 
 ```bash
 # 1. Clone the repository and enter it
@@ -108,39 +144,42 @@ echo GROQ_API_KEY=your_key_here > .env
 # Place PDF files in the ./autism directory (or change PDF_DIRECTORY in rag_core.py)
 ```
 
-**Environment variables:**
+### 🔑 Environment Variables
 
 | Variable                  | Required | Default | Purpose                                                                 |
 |----------------------------|----------|---------|--------------------------------------------------------------------------|
-| `GROQ_API_KEY`              | Yes      | —       | Groq API key used for answer generation, translation, and contradiction analysis. |
-| `RAG_MIN_RELEVANCE_SCORE`   | No       | `0.2`   | Minimum normalized relevance score a retrieved chunk must clear before the LLM is allowed to answer (see Hallucination Prevention Strategy). |
+| `GROQ_API_KEY`              | ✅ Yes   | —       | Groq API key used for answer generation, translation, and contradiction analysis. |
+| `RAG_MIN_RELEVANCE_SCORE`   | ❌ No    | `0.2`   | Minimum normalized relevance score a retrieved chunk must clear before the LLM is allowed to answer (see [Hallucination Prevention Strategy](#-hallucination-prevention-strategy)). |
 
-**Run the Streamlit UI:**
+### ▶️ Run the Streamlit UI
+
 ```bash
 streamlit run app.py
 ```
 
-**Run the FastAPI backend:**
+### ▶️ Run the FastAPI Backend
+
 ```bash
 uvicorn api:app --reload
 ```
+
 Interactive API docs are then available at `http://127.0.0.1:8000/docs`.
 
-The first run (or any run after the PDFs change) builds and persists a FAISS index to
-`./faiss_index`; subsequent runs load it from disk instead of re-embedding everything.
+> 💡 The first run (or any run after the PDFs change) builds and persists a FAISS index to
+> `./faiss_index`; subsequent runs load it from disk instead of re-embedding everything.
 
-## How the RAG Pipeline Works
+## 🔄 How the RAG Pipeline Works
 
 1. **Load** — all PDFs in the source folder are loaded and split into per-page documents (`PyPDFDirectoryLoader`).
-2. **Chunk** — pages are split into overlapping chunks (see chunking strategy below), each tagged with a `chunk_id`.
+2. **Chunk** — pages are split into overlapping chunks (see [chunking strategy](#-chunking-strategy) below), each tagged with a `chunk_id`.
 3. **Embed & index** — chunks are embedded with `BAAI/bge-small-en-v1.5` and stored in a FAISS index, persisted to disk with a content signature so it's only rebuilt when the PDFs actually change.
 4. **Retrieve** — for a question, an MMR (Maximal Marginal Relevance) retriever pulls the top-k diverse, relevant chunks.
-5. **Confidence check** — before generation, a separate scored similarity search checks whether any retrieved chunk clears a minimum relevance threshold (see Hallucination Prevention below).
+5. **Confidence check** — before generation, a separate scored similarity search checks whether any retrieved chunk clears a minimum relevance threshold (see [Hallucination Prevention](#-hallucination-prevention-strategy) below).
 6. **Generate** — the LLM answers strictly from the retrieved chunks via a "stuff documents" chain, using a prompt that forbids outside knowledge.
 7. **Cite** — each source chunk used is returned alongside the answer with its filename, page/chunk locator, and exact text.
 8. **(Optional) Translate** — if the original question wasn't in English, the answer is translated back into that language before being returned; citations are left in their original language.
 
-## Chunking Strategy
+## ✂️ Chunking Strategy
 
 Documents are split with `RecursiveCharacterTextSplitter` using **chunk size 1000 characters
 with 200 characters of overlap**. This was chosen because:
@@ -151,23 +190,30 @@ with 200 characters of overlap**. This was chosen because:
 - **200-character overlap (20%)** guards against splitting a sentence or idea exactly at a
   chunk boundary — if the answer-relevant fact spans a boundary, at least one chunk still
   captures it whole.
-- Recursive splitting (rather than a fixed-width or sentence splitter) tries progressively
+- **Recursive splitting** (rather than a fixed-width or sentence splitter) tries progressively
   smaller separators (paragraph → sentence → word), so chunks break at natural boundaries
   as often as possible instead of mid-sentence.
-- Each chunk is tagged with a `chunk_id`, giving every citation a stable locator even for
+- Each chunk is tagged with a **`chunk_id`**, giving every citation a stable locator even for
   content where a page number isn't meaningful.
 
-## API Endpoints
+## 🔌 API Endpoints
 
 ### `POST /ask`
+
 Ask a question against the document corpus.
 
-**Request**
+<details open>
+<summary><strong>Request</strong></summary>
+
 ```json
 { "question": "What are the early signs of autism?" }
 ```
 
-**Response**
+</details>
+
+<details open>
+<summary><strong>Response</strong></summary>
+
 ```json
 {
   "answer": "...",
@@ -179,10 +225,15 @@ Ask a question against the document corpus.
 }
 ```
 
+</details>
+
 ### `POST /contradict`
+
 Compare how two documents discuss a topic and check for contradictions.
 
-**Request**
+<details open>
+<summary><strong>Request</strong></summary>
+
 ```json
 {
   "document_1": "Autism.pdf",
@@ -191,7 +242,11 @@ Compare how two documents discuss a topic and check for contradictions.
 }
 ```
 
-**Response**
+</details>
+
+<details open>
+<summary><strong>Response</strong></summary>
+
 ```json
 {
   "conflict": false,
@@ -201,10 +256,13 @@ Compare how two documents discuss a topic and check for contradictions.
 }
 ```
 
+</details>
+
 ### `GET /health`
+
 Returns readiness status and current knowledge-base stats (document/chunk counts).
 
-## Hallucination Prevention Strategy
+## 🛡️ Hallucination Prevention Strategy
 
 Two layers work together to keep answers grounded:
 
@@ -213,7 +271,9 @@ Two layers work together to keep answers grounded:
    relevance score (`RAG_MIN_RELEVANCE_SCORE`, default `0.2`). If nothing is relevant
    enough, the pipeline **short-circuits** and returns the fixed message below without
    invoking the LLM at all — the model is never given a chance to guess:
-   > "The provided documents do not contain sufficient information to answer this question."
+
+   > *"The provided documents do not contain sufficient information to answer this question."*
+
 2. **Grounding prompt constraint** — even when relevant context is passed to the LLM, the
    prompt explicitly instructs it to answer *only* from the given context, forbids
    outside knowledge or inference beyond what's stated, and requires it to fall back to the
@@ -222,20 +282,21 @@ Two layers work together to keep answers grounded:
 This same guard is reused identically by both the Streamlit UI and the `/ask` API endpoint,
 so behavior is consistent across surfaces.
 
-## Future Improvements
+## 🚀 Future Improvements
 
-- Support additional file types (Word, HTML, plain text) beyond PDF.
-- Add conversation memory / multi-turn follow-up questions.
-- Add authentication and per-user rate limiting to the API.
-- Add automated evaluation (retrieval precision/recall, answer faithfulness scoring).
-- Add streaming responses for both the UI and API.
-- Support incremental re-indexing instead of full rebuilds when only a few PDFs change.
-- Configurable relevance threshold and retriever parameters via the UI/API rather than only env vars.
+- [ ] Support additional file types (Word, HTML, plain text) beyond PDF.
+- [ ] Add conversation memory / multi-turn follow-up questions.
+- [ ] Add authentication and per-user rate limiting to the API.
+- [ ] Add automated evaluation (retrieval precision/recall, answer faithfulness scoring).
+- [ ] Add streaming responses for both the UI and API.
+- [ ] Support incremental re-indexing instead of full rebuilds when only a few PDFs change.
+- [ ] Configurable relevance threshold and retriever parameters via the UI/API rather than only env vars.
 
-## AI Use Log
+## 🤖 AI Use Log
 
 This project was built with Claude Code (Anthropic) as a pair-programming assistant across
 the following areas:
+
 - Scaffolding the initial RAG pipeline (chunking, FAISS indexing, retrieval chain) and Streamlit UI.
 - Refactoring shared pipeline logic out of the Streamlit app into `rag_core.py` to avoid duplication when adding the FastAPI backend.
 - Implementing the FastAPI `/ask` and `/contradict` endpoints.
@@ -243,22 +304,24 @@ the following areas:
 - Adding multilingual question/answer translation support.
 - Drafting this README.
 
-All AI-assisted code was reviewed, run, and manually verified (including live end-to-end
-tests of both the Streamlit UI and the API endpoints) before being committed.
+> All AI-assisted code was reviewed, run, and manually verified (including live end-to-end
+> tests of both the Streamlit UI and the API endpoints) before being committed.
 
-## Known Limitations
+## ⚠️ Known Limitations
 
-- **English-centric knowledge base**: the source documents and embedding model are English;
-  non-English questions work via translation, but retrieval quality depends on how well the
-  translated query matches the English source text.
-- **Relevance threshold is heuristic**: `RAG_MIN_RELEVANCE_SCORE` is a fixed cutoff tuned by
-  observation, not a calibrated statistical measure — it may occasionally reject a valid
-  question or admit a marginal one.
-- **No conversation memory**: each question is answered independently; there is no
-  multi-turn context carried between questions.
-- **Single local knowledge base**: the system indexes one fixed folder of PDFs; it does not
-  support per-user or per-session document uploads.
-- **No authentication**: the FastAPI backend has no auth/rate-limiting layer and is intended
-  for local/trusted use, not public deployment as-is.
-- **Contradiction detection is topic-scoped by retrieval**: it only compares the top-k
-  retrieved passages per document for the given topic, not the full text of either document.
+| Limitation | Detail |
+|---|---|
+| 🌐 **English-centric knowledge base** | The source documents and embedding model are English; non-English questions work via translation, but retrieval quality depends on how well the translated query matches the English source text. |
+| 🎚️ **Relevance threshold is heuristic** | `RAG_MIN_RELEVANCE_SCORE` is a fixed cutoff tuned by observation, not a calibrated statistical measure — it may occasionally reject a valid question or admit a marginal one. |
+| 🧠 **No conversation memory** | Each question is answered independently; there is no multi-turn context carried between questions. |
+| 📁 **Single local knowledge base** | The system indexes one fixed folder of PDFs; it does not support per-user or per-session document uploads. |
+| 🔓 **No authentication** | The FastAPI backend has no auth/rate-limiting layer and is intended for local/trusted use, not public deployment as-is. |
+| ⚖️ **Contradiction detection is topic-scoped by retrieval** | It only compares the top-k retrieved passages per document for the given topic, not the full text of either document. |
+
+---
+
+<div align="center">
+
+Made with 🧠 + ☕ for an internship submission.
+
+</div>
