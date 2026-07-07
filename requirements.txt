@@ -1,7 +1,6 @@
 faiss-cpu
 groq
 langchain-groq
-PyPDF2
 langchain
 langchain-classic
 langchain-text-splitters

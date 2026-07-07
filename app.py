@@ -170,21 +170,23 @@ if "vectors" not in st.session_state and not build_clicked:
 # Vector store build (triggered from sidebar)
 # ---------------------------------------------------------------------------
 if build_clicked:
-    if "vectors" not in st.session_state:
-        with st.spinner("🔍 Loading documents and building the vector store..."):
-            try:
-                vectors, stats = build_vector_store()
-                signature = compute_docs_signature(PDF_DIRECTORY)
-                save_vector_store(vectors, stats, signature)
-                _activate_vector_store(vectors, stats)
-                st.success("✅ Vector Store DB is ready!")
-                st.toast("Vector store is ready!", icon="✅")
-            except ValueError as e:
-                st.error(f"❌ {e}")
-            except Exception as e:
-                st.error(f"❌ Failed to build the vector store: {e}")
-    else:
-        st.info("ℹ️ Vector store already built. It's ready to use.")
+    spinner_text = (
+        "🔄 Rebuilding the vector store..."
+        if "vectors" in st.session_state
+        else "🔍 Loading documents and building the vector store..."
+    )
+    with st.spinner(spinner_text):
+        try:
+            vectors, stats = build_vector_store()
+            signature = compute_docs_signature(PDF_DIRECTORY)
+            save_vector_store(vectors, stats, signature)
+            _activate_vector_store(vectors, stats)
+            st.success("✅ Vector Store DB is ready!")
+            st.toast("Vector store is ready!", icon="✅")
+        except ValueError as e:
+            st.error(f"❌ {e}")
+        except Exception as e:
+            st.error(f"❌ Failed to build the vector store: {e}")
 
 # ---------------------------------------------------------------------------
 # Question input

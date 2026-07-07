@@ -108,6 +108,13 @@ echo GROQ_API_KEY=your_key_here > .env
 # Place PDF files in the ./autism directory (or change PDF_DIRECTORY in rag_core.py)
 ```
 
+**Environment variables:**
+
+| Variable                  | Required | Default | Purpose                                                                 |
+|----------------------------|----------|---------|--------------------------------------------------------------------------|
+| `GROQ_API_KEY`              | Yes      | —       | Groq API key used for answer generation, translation, and contradiction analysis. |
+| `RAG_MIN_RELEVANCE_SCORE`   | No       | `0.2`   | Minimum normalized relevance score a retrieved chunk must clear before the LLM is allowed to answer (see Hallucination Prevention Strategy). |
+
 **Run the Streamlit UI:**
 ```bash
 streamlit run app.py
