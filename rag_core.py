@@ -35,6 +35,11 @@ FAISS_INDEX_META_PATH = os.path.join(FAISS_INDEX_DIR, "doclens_meta.json")
 # having found nothing relevant, and we short-circuit instead of asking the LLM to guess.
 MIN_RELEVANCE_SCORE = float(os.getenv("RAG_MIN_RELEVANCE_SCORE", "0.2"))
 
+# Number of chunks embedded per forward pass during vector store construction. Larger
+# batches make better use of vectorized CPU/GPU ops for a small encoder model like
+# bge-small, up to the point of diminishing/negative returns from memory pressure.
+EMBEDDING_BATCH_SIZE = int(os.getenv("EMBEDDING_BATCH_SIZE", "64"))
+
 INSUFFICIENT_CONTEXT_MESSAGE = (
     "The provided documents do not contain sufficient information to answer this question."
 )
@@ -73,8 +78,17 @@ def get_document_chain():
 
 @lru_cache(maxsize=1)
 def get_embeddings():
-    """Load the embedding model once per process and reuse it everywhere."""
-    return HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL)
+    """Load the embedding model once per process and reuse it everywhere.
+
+    `encode_kwargs={"batch_size": EMBEDDING_BATCH_SIZE}` makes sentence-transformers embed
+    chunks in larger batches per forward pass (instead of falling back to its default of 32),
+    reducing the number of Python/model call-overhead round-trips during a full vector store
+    build without changing the resulting embeddings themselves.
+    """
+    return HuggingFaceEmbeddings(
+        model_name=EMBEDDING_MODEL,
+        encode_kwargs={"batch_size": EMBEDDING_BATCH_SIZE},
+    )
 
 
 def compute_docs_signature(pdf_directory=PDF_DIRECTORY):
@@ -118,6 +132,26 @@ def load_vector_store():
     return vectors, meta["stats"], meta["signature"]
 
 
+def _deduplicate_chunks(chunks):
+    """Drop chunks whose text is an exact duplicate of one already seen (e.g. repeated
+    headers/footers or boilerplate across pages or PDFs), keeping the first occurrence.
+
+    Embedding the same text twice costs compute for zero additional retrieval value — the
+    duplicate chunk is guaranteed to embed identically and would just occupy an extra FAISS
+    slot with no new information. Chunking strategy and remaining chunk content are untouched;
+    this only removes exact repeats, never near-duplicates, so retrieval quality is preserved.
+    """
+    seen_content = set()
+    unique_chunks = []
+    for chunk in chunks:
+        normalized = chunk.page_content.strip()
+        if normalized in seen_content:
+            continue
+        seen_content.add(normalized)
+        unique_chunks.append(chunk)
+    return unique_chunks
+
+
 def build_vector_store(pdf_directory=PDF_DIRECTORY):
     """Load PDFs, split them into chunks, and embed them into a FAISS index."""
     embeddings = get_embeddings()
@@ -128,16 +162,23 @@ def build_vector_store(pdf_directory=PDF_DIRECTORY):
         raise ValueError(f"No PDF documents found in '{pdf_directory}'.")
 
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-    final_documents = text_splitter.split_documents(docs)
+    split_documents = text_splitter.split_documents(docs)
+
+    final_documents = _deduplicate_chunks(split_documents)
+    duplicates_removed = len(split_documents) - len(final_documents)
     for i, chunk in enumerate(final_documents):
         chunk.metadata["chunk_id"] = i
 
+    # A single batched embed_documents() call handles all chunks at once (langchain's
+    # FAISS.from_documents embeds the full text list in one call rather than per-chunk);
+    # get_embeddings() further batches that call internally via EMBEDDING_BATCH_SIZE.
     vectors = FAISS.from_documents(final_documents, embeddings)
 
     stats = {
         "pdf_names": sorted({os.path.basename(d.metadata.get("source", "Unknown")) for d in docs}),
         "total_documents": len(docs),
         "total_chunks": len(final_documents),
+        "duplicate_chunks_removed": duplicates_removed,
     }
     return vectors, stats
 

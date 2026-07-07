@@ -100,18 +100,35 @@ with st.sidebar:
     st.divider()
 
     st.markdown("### 📚 Knowledge Base")
-    if "vectors" in st.session_state:
+    vector_store_ready = "vectors" in st.session_state
+    if vector_store_ready:
         st.success("Vector store ready")
     else:
         st.info("Vector store not built yet")
 
-    build_clicked = st.button("🔄 Build / Rebuild Vector Store", use_container_width=True)
+    col_build, col_rebuild = st.columns(2)
+    build_clicked = col_build.button(
+        "🏗️ Build",
+        use_container_width=True,
+        disabled=vector_store_ready,
+        help="Build the vector store for the first time.",
+    )
+    rebuild_clicked = col_rebuild.button(
+        "🔄 Rebuild",
+        use_container_width=True,
+        disabled=not vector_store_ready,
+        help="Force a fresh rebuild from the source PDFs, even if nothing changed.",
+    )
 
     if "kb_stats" in st.session_state:
         stats = st.session_state.kb_stats
         col1, col2 = st.columns(2)
         col1.metric("Documents", stats["total_documents"])
         col2.metric("Chunks", stats["total_chunks"])
+
+        duplicates_removed = stats.get("duplicate_chunks_removed", 0)
+        if duplicates_removed:
+            st.caption(f"♻️ {duplicates_removed} duplicate chunk(s) skipped during the last build.")
 
         with st.expander(f"📁 Loaded PDFs ({len(stats['pdf_names'])})"):
             for name in stats["pdf_names"]:
@@ -144,43 +161,60 @@ def _activate_vector_store(vectors, stats):
     st.session_state.retrieval_chain = build_retrieval_chain(vectors)
 
 
+@st.cache_resource(show_spinner=False)
+def _cached_load_or_build_vector_store(signature):
+    """Resource-cache the load-or-build decision, keyed on the PDF folder's content signature.
+
+    Streamlit's resource cache is process-wide, not per-session: as long as `signature` is
+    unchanged, every rerun *and every concurrent user session* reuses this exact same
+    in-memory FAISS index instead of re-reading it from disk (let alone re-parsing PDFs or
+    re-embedding chunks). The signature changing — a PDF added, removed, or modified — is
+    what busts the cache key and forces a genuine rebuild, satisfying the "only rebuild when
+    the documents change" requirement for free as a side effect of the cache key itself.
+    """
+    loaded = load_vector_store()
+    if loaded is not None:
+        vectors, stats, saved_signature = loaded
+        if signature is not None and signature == saved_signature:
+            return vectors, stats, "loaded"
+
+    vectors, stats = build_vector_store()
+    save_vector_store(vectors, stats, signature)
+    return vectors, stats, "rebuilt"
+
+
 # ---------------------------------------------------------------------------
 # Auto-load persisted vector store on startup (skips rebuilding if unchanged)
 # ---------------------------------------------------------------------------
-if "vectors" not in st.session_state and not build_clicked:
+if "vectors" not in st.session_state and not build_clicked and not rebuild_clicked:
     current_signature = compute_docs_signature(PDF_DIRECTORY)
-    loaded = load_vector_store()
-    if loaded is not None:
-        saved_vectors, saved_stats, saved_signature = loaded
-        if current_signature is not None and current_signature == saved_signature:
-            _activate_vector_store(saved_vectors, saved_stats)
-            st.toast("Loaded existing vector store from disk.", icon="📦")
-        else:
-            # Documents changed since the index was saved — rebuild automatically.
-            with st.spinner("📄 Documents changed. Rebuilding the vector store..."):
-                try:
-                    vectors, stats = build_vector_store()
-                    save_vector_store(vectors, stats, current_signature)
-                    _activate_vector_store(vectors, stats)
-                    st.toast("Documents changed — vector store rebuilt.", icon="🔄")
-                except Exception as e:
-                    st.error(f"❌ Failed to rebuild the vector store: {e}")
+    with st.spinner("📦 Preparing knowledge base..."):
+        try:
+            vectors, stats, source = _cached_load_or_build_vector_store(current_signature)
+            _activate_vector_store(vectors, stats)
+            if source == "loaded":
+                st.toast("Loaded existing vector store from disk.", icon="📦")
+            else:
+                st.toast("Documents changed — vector store rebuilt.", icon="🔄")
+        except Exception as e:
+            st.error(f"❌ Failed to prepare the vector store: {e}")
 
 # ---------------------------------------------------------------------------
-# Vector store build (triggered from sidebar)
+# Build / Rebuild (triggered from sidebar) — both always perform a full, unconditional
+# rebuild from the source PDFs, since the user explicitly asked for it. "Build" is only
+# enabled when no vector store exists yet; "Rebuild" is only enabled once one does.
 # ---------------------------------------------------------------------------
-if build_clicked:
-    spinner_text = (
-        "🔄 Rebuilding the vector store..."
-        if "vectors" in st.session_state
-        else "🔍 Loading documents and building the vector store..."
-    )
+if build_clicked or rebuild_clicked:
+    spinner_text = "🔄 Rebuilding the vector store..." if rebuild_clicked else "🔍 Loading documents and building the vector store..."
     with st.spinner(spinner_text):
         try:
             vectors, stats = build_vector_store()
             signature = compute_docs_signature(PDF_DIRECTORY)
             save_vector_store(vectors, stats, signature)
             _activate_vector_store(vectors, stats)
+            # Invalidate the shared cache so other sessions/reruns pick up this fresh build
+            # instead of a stale cached entry for the same signature.
+            _cached_load_or_build_vector_store.clear()
             st.success("✅ Vector Store DB is ready!")
             st.toast("Vector store is ready!", icon="✅")
         except ValueError as e:
@@ -226,11 +260,11 @@ if ask_clicked and user_question:
     else:
         try:
             with st.spinner("🤖 Thinking..."):
-                start = time.process_time()
+                start = time.perf_counter()
                 response = answer_question_multilingual(
                     st.session_state.retrieval_chain, st.session_state.vectors, user_question
                 )
-                elapsed = time.process_time() - start
+                elapsed = time.perf_counter() - start
 
             answer_text = response["answer"]
             is_insufficient = is_insufficient_context(response["original_answer"])
